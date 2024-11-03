@@ -1,0 +1,35 @@
+    File1.h;
+    #include sys1.h;
+    using namespace;
+    code;
+    
+    File2.h;
+    #include sys2.h;
+    #include File1.h = {
+        #include sys1.h;
+        using namespace;
+        code; }
+    using namespace;
+    code;
+    
+    File2B.h;
+    #include sys2B.h;
+    using namespace;
+    code;
+    
+    File3.h = ;
+    #include sys3.h;
+    #include File2.h = {
+        #include sys2.h;
+        #include File1.h = {
+            #include sys1.h;
+            using namespace;
+            code; }
+        using namespace;
+        code; }
+    #include File2B.h = {
+        #include sys2B.h; // possible namespace conflict here because "using namespace" now affects sys.h
+        using namespace;
+        code; }
+    using namespace;
+    code;
