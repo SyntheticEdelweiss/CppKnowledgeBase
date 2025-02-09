@@ -1,29 +1,18 @@
 #pragma once
 
 #include <functional>
-#include <iostream>
 #include <memory>
 
-#include <QtCore/QEventLoop>
 #include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QTimer>
 
 #include "Utils.h"
 
-void runSignalSlotTest();
+// different arguments and modifiers for signals & slots
+void signalSlotArgTest();
+// signal & slot interactions depending on QThread & QEventLoop working
+void signalSlotThreadTest();
 
 typedef std::function<void(const CtorDtorNotifier&)> StdFunctionConstRefArgWrapper;
-
-inline void registerCtorDtorNotifierForQt()
-{
-    qRegisterMetaType<CtorDtorNotifier>("CtorDtorNotifier");
-    qRegisterMetaType<std::shared_ptr<CtorDtorNotifier>>("std::shared_ptr<CtorDtorNotifier>");
-    qRegisterMetaType<std::function<void(CtorDtorNotifier)>>("std::function<void(CtorDtorNotifier)>");
-    qRegisterMetaType<std::function<void(CtorDtorNotifier&)>>("std::function<void(CtorDtorNotifier&)>");
-    qRegisterMetaType<StdFunctionConstRefArgWrapper>("StdFunctionConstRefArgWrapper");
-    return;
-}
 
 class SignalEmitter : public QObject
 {
@@ -74,4 +63,3 @@ public slots:
     void processStdFunctionConstRefArgWrapper(const StdFunctionConstRefArgWrapper&, const CtorDtorNotifier&);
     // void processStdFunctionConstRefArg(std::function<void(CtorDtorNotifier const&)> const&, CtorDtorNotifier const&); // compiler error due to incorrect MOC output    
 };
-

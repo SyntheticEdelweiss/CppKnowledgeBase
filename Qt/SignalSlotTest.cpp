@@ -1,8 +1,21 @@
 #include "SignalSlotTest.h"
 
-void runSignalSlotTest()
+#include <QtCore/QEventLoop>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtCore/QCoreApplication>
+#include <QtDebug>
+
+
+void signalSlotArgTest()
 {
-    registerCtorDtorNotifierForQt();
+    // register required types
+    qRegisterMetaType<CtorDtorNotifier>("CtorDtorNotifier");
+    qRegisterMetaType<std::shared_ptr<CtorDtorNotifier>>("std::shared_ptr<CtorDtorNotifier>");
+    qRegisterMetaType<std::function<void(CtorDtorNotifier)>>("std::function<void(CtorDtorNotifier)>");
+    qRegisterMetaType<std::function<void(CtorDtorNotifier&)>>("std::function<void(CtorDtorNotifier&)>");
+    qRegisterMetaType<StdFunctionConstRefArgWrapper>("StdFunctionConstRefArgWrapper");
+
     const size_t receiversCount = 1; // affects number of signal receivers
     SignalEmitter* src = new SignalEmitter;
     std::array<SlotCaller*, receiversCount> rcvArray;
@@ -105,6 +118,77 @@ void runSignalSlotTest()
     localLoop.exec();
     return;
 }
+
+// signal & slot interactions depending on QThread & QEventLoop working
+void signalSlotThreadTest()
+{
+    const bool testEmitFromMainThread = true;
+    const bool o_1 = true; // [1] - start thread before emitting signal
+    const bool o_2 = !o_1; // [2] - start thread after emitting signal and sleeping
+    static_assert(o_1 != o_2);
+
+    CtorDtorNotifierQt* cdn = new CtorDtorNotifierQt;
+    QThread* sideThread = new QThread;
+    QObject* contextHelper = new QObject;
+    contextHelper->moveToThread(sideThread);
+
+    if (testEmitFromMainThread)
+    {
+        // [1]
+        if constexpr(o_1) {
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "starting sideThread [1]";
+            sideThread->start();
+        }
+
+        // Connected slot will be called in Main, which is affiliated with object
+        // Processing DirectConnection doesn't even require any running QEventLoop -> slot will be called immediately after emitting connected signal
+        QObject::connect(cdn, &CtorDtorNotifierQt::testSignal, [](){
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "DirectConnection lambda called";
+        });
+        // Connected slot will be called in Side, which is affiliated with contextHelper
+        // Queued slot won't be called until Side is started, since its QEventLoop is supposed to process events, including signals from other threads
+        QObject::connect(cdn, &CtorDtorNotifierQt::testSignal, contextHelper, [](){
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "QueuedConnection lambda called";
+        }, Qt::QueuedConnection);
+
+        // Direct slot will be called in both [1] and [2]
+        // Queued slot will be called only in [1], since in [2] Side is not started yet
+        qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "emitting signal";
+        emit cdn->testSignal();
+        qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "start sleeping 500 msec";
+        QThread::currentThread()->msleep(500);
+
+        // [2]
+        if constexpr(o_2) {
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "starting sideThread [2]";
+            sideThread->start();
+            // Queued slot will be called despite Main sleeping, because it's connected to execute in Side
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "start sleeping 500 msec";
+            QThread::currentThread()->msleep(500);
+        }
+    }
+    else
+    {
+        QObject::connect(cdn, &CtorDtorNotifierQt::testSignal, [](){
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "DirectConnection lambda called";
+        });
+        QObject::connect(cdn, &CtorDtorNotifierQt::testSignal, QCoreApplication::instance(), [](){
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "QueuedConnection lambda called";
+        }, Qt::QueuedConnection);
+
+        // NOTE: capturing &cdn causes segfault - cdn goes out of scope before it's accessed in slot, so it becomes a dangling reference to a pointer, even though the value that pointer used to point to is valid
+        QObject::connect(sideThread, &QThread::started, [cdn](){
+            // DirectConnection is processed immediately
+            // QueuedConnection is connected to QCoreApplication::instance() thus it's processed in Main and doesn't wait until after Side has finished sleep
+            emit cdn->testSignal(); // connected slots are called as expected - <this> thread's event loop doesn't need to execute processEvents()
+            QThread::currentThread()->msleep(1000);
+            qWarning() << QDateTime::currentDateTimeUtc() << QThread::currentThread() << "Finished sleep";
+        });
+        sideThread->start();
+    }
+}
+
+
 
 SignalEmitter::~SignalEmitter()
 {

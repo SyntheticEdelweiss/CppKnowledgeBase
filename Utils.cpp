@@ -66,3 +66,24 @@ CtorDtorNotifier& CtorDtorNotifier::operator=(CtorDtorNotifier&& other)
               << std::endl;
     return *this;
 }
+
+
+CtorDtorNotifierQt::CtorDtorNotifierQt(QObject* parent)
+    : QObject(parent)
+{
+    static uint counter = 0;
+    counter_ptr = &counter;
+    id = ++counter;
+    std::cout << std::string("Constructed CtorDtorNotifierQt id=")
+              << std::to_string(id)
+              << std::endl;
+    return;
+}
+
+CtorDtorNotifierQt::~CtorDtorNotifierQt()
+{
+    std::cout << std::string("Destroyed CtorDtorNotifierQt id=")
+              << std::to_string(id)
+              << std::endl;
+    return;
+}

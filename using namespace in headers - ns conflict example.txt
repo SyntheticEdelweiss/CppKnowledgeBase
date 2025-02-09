@@ -28,7 +28,7 @@
         using namespace;
         code; }
     #include File2B.h = {
-        #include sys2B.h; // possible namespace conflict here because "using namespace" now affects sys.h
+        #include sys2B.h; // possible namespace conflict here because "using namespace" now affects sys2B.h
         using namespace;
         code; }
     using namespace;
