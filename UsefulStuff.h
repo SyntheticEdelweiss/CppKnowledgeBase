@@ -1,5 +1,15 @@
 #pragma once
 
+inline bool is_system_little_endian()
+{
+    const int value { 0x01 };
+    const void * address { static_cast<const void *>(&value) };
+    const unsigned char * least_significant_address { static_cast<const unsigned char *>(address) };
+
+    return (*least_significant_address == 0x01);
+}
+void byteOrderTest();
+
 
 #include <type_traits>
 
@@ -222,3 +232,136 @@ QString CallToString(const T& t)
 {
     return t.toString();
 }*/
+
+
+
+
+template<typename T>
+T shiftLR(T const& val, const int shiftL, const int shiftR) // shiftL and shiftR are bit-wise
+{
+    const auto retVal = ((val << shiftL) >> shiftL)
+                      & ((val >> shiftR) << shiftR);
+    return retVal;
+}
+template<typename T>
+T shiftLS(T const& val, const int shiftL, const int targetSize) // shiftL and targetSize are bit-wise // targetSize is size of element that needs shifting
+{
+    const int shiftR = (sizeof(T) * 8) - shiftL - targetSize;
+    return shiftLR(val, shiftL, shiftR);
+}
+template<typename T>
+T shiftRS(T const& val, const int shiftR, const int targetSize) // shiftR and targetSize are bit-wise // targetSize is size of element that needs shifting
+{
+    const int shiftL = (sizeof(T) * 8) - shiftR - targetSize;
+    return shiftLR(val, shiftL, shiftR);
+}
+
+
+#include <type_traits>
+#include <QtCore/QJsonObject>
+
+/* Example:
+ * QJsonObject curObject;
+ * uint id_abon;
+ * if (!parseJsonVarLambda(curObject, "id_abon", abon.id_abon)) goto goto_incorrect_abonent; */
+template<typename T>
+bool parseJsonVarLambda(QJsonObject& curObject, QString curValueName, T& targetVar)
+{
+    if constexpr(std::is_enum_v<T>)
+        parseJsonVarLambda(curObject, curValueName, static_cast<std::underlying_type_t<std::decay_t<decltype(targetVar)>>&>(targetVar));
+    else if constexpr(std::is_same_v<QString, std::decay_t<decltype(targetVar)>>)
+    {
+        if (!(curObject.contains(curValueName) && curObject[curValueName].isString()))
+            return false;
+        targetVar = curObject[curValueName].toString();
+    }
+    else if constexpr(std::is_same_v<bool, std::decay_t<decltype(targetVar)>>)
+    {
+        if (!(curObject.contains(curValueName) && curObject[curValueName].isBool()))
+            return false;
+        targetVar = curObject[curValueName].toBool();
+    }
+    else if constexpr(std::is_floating_point_v<std::decay_t<decltype(targetVar)>>)
+    {
+        if (!(curObject.contains(curValueName) && curObject[curValueName].isDouble()))
+            return false;
+        targetVar = curObject[curValueName].toDouble();
+    }
+    else if constexpr(std::is_integral_v<std::decay_t<decltype(targetVar)>>)
+    {
+        if constexpr(std::is_signed_v<std::decay_t<decltype(targetVar)>>)
+        {
+            if (!(curObject.contains(curValueName) && curObject[curValueName].isDouble()))
+                return false;
+            targetVar = curObject[curValueName].toVariant().toLongLong();
+        }
+        else
+        {
+            if (!(curObject.contains(curValueName) && curObject[curValueName].isDouble()))
+                return false;
+            targetVar = curObject[curValueName].toVariant().toULongLong();
+        }
+    }
+    else
+    {
+        static_assert(!sizeof(T), "type unsupported by JSON format");
+    }
+    return true;
+}
+
+
+#include <type_traits>
+#include <QtCore/QVariant>
+#include <QtCore/QList>
+
+template<typename T>
+QList<T> variantListCast(QList<QVariant> const& variantList)
+{
+    QList<T> resultList;
+    if constexpr(std::is_enum_v<T>)
+    {
+        if (std::is_signed_v<std::underlying_type_t<T>>)
+        {
+            for (QVariant const& element : qAsConst(variantList))
+                resultList << static_cast<T>(static_cast<std::underlying_type_t<T>>(element.toLongLong()));
+        }
+        else
+        {
+            for (QVariant const& element : qAsConst(variantList))
+                resultList << static_cast<T>(static_cast<std::underlying_type_t<T>>(element.toULongLong()));
+        }
+    }
+    else if constexpr(std::is_same_v<QString, T>)
+    {
+        for (QVariant const& element : qAsConst(variantList))
+            resultList << element.toString();
+    }
+    else if constexpr(std::is_same_v<bool, T>)
+    {
+        for (QVariant const& element : qAsConst(variantList))
+            resultList << element.toBool();
+    }
+    else if constexpr(std::is_floating_point_v<T>)
+    {
+        for (QVariant const& element : qAsConst(variantList))
+            resultList << static_cast<T>(element.toDouble());
+    }
+    else if constexpr(std::is_integral_v<T>)
+    {
+        if constexpr(std::is_signed_v<T>)
+        {
+            for (QVariant const& element : qAsConst(variantList))
+                resultList << static_cast<T>(element.toLongLong());
+        }
+        else
+        {
+            for (QVariant const& element : qAsConst(variantList))
+                resultList << static_cast<T>(element.toULongLong());
+        }
+    }
+    else
+    {
+        static_assert(!sizeof(T), "type unsupported by variantListCast()");
+    }
+    return resultList;
+}

@@ -11,19 +11,29 @@
 #include <QtCore/QString>
 #include <QtGlobal>
 
-#ifndef under_cast
 #define under_cast(EnumValue) static_cast<std::underlying_type_t<decltype(EnumValue)>>(EnumValue)
-#endif
 
-#ifndef c_cast
 #define c_cast(type, var) (type)(var)
-#endif
+
+#define THIS_T std::remove_pointer<decltype(this)>::type
 
 #ifndef UNIQUE_VARNAME
-#define UNIQUE_VARNAME_IMPL(lineno) _a_local_var##lineno
-#define UNIQUE_VARNAME_IMPL_PREP(lineno) UNIQUE_VARNAME_IMPL(lineno)
-#define UNIQUE_VARNAME UNIQUE_VARNAME_IMPL_PREP(__LINE__)
+#define UNIQUE_VARNAME_IMPL(counter) _unique_varname##counter
+#define UNIQUE_VARNAME_IMPL_PREP(counter) UNIQUE_VARNAME_IMPL(counter)
+#define UNIQUE_VARNAME UNIQUE_VARNAME_IMPL_PREP(__COUNTER__)
 #endif
+
+#define DISABLE_CLASS_COPY(Class) \
+    Class(const Class &) = delete;\
+    Class &operator=(const Class &) = delete;
+
+#define DISABLE_CLASS_MOVE(Class) \
+    Class(Class &&) = delete; \
+    Class &operator=(Class &&) = delete;
+
+#define DISABLE_CLASS_COPY_MOVE(Class) \
+    DISABLE_CLASS_COPY(Class) \
+    DISABLE_CLASS_MOVE(Class)
 
 class LogDuration
 {
@@ -107,7 +117,7 @@ public:
     CtorDtorNotifier(CtorDtorNotifier&&);                    // Move constructor
     CtorDtorNotifier& operator=(CtorDtorNotifier&&);         // Move assignment
 
-    inline int func() { return 5; }
+    inline int func() const { return 5; }
     uint* counter_ptr;
     uint id;
 };
@@ -128,3 +138,25 @@ private:
 
 #define WRAP_QT_CONNECTION(a_connection) \
     MetaObjectConnectionWrapper UNIQUE_VARNAME {a_connection};
+
+
+
+class CtorDtorNotifierQt : public QObject
+{
+    Q_OBJECT
+public:
+    explicit CtorDtorNotifierQt(QObject* parent = nullptr);
+    virtual ~CtorDtorNotifierQt();
+    // QObject classes can't be copyable by design // https://doc.qt.io/qt-5/qobject.html#no-copy-constructor-or-assignment-operator
+    CtorDtorNotifierQt(const CtorDtorNotifierQt&)               = delete; // Copy constructor
+    CtorDtorNotifierQt& operator=(const CtorDtorNotifierQt&)    = delete; // Copy assignment
+    CtorDtorNotifierQt(CtorDtorNotifierQt&&)                    = delete; // Move constructor
+    CtorDtorNotifierQt& operator=(CtorDtorNotifierQt&&)         = delete; // Move assignment
+
+    inline int func() const { return 9; }
+    uint* counter_ptr;
+    uint id;
+
+signals:
+    void testSignal();
+};
