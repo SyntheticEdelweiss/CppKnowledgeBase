@@ -19,11 +19,12 @@ int main(int argc, char *argv[])
     // signalSlotArgTest();
     // signalSlotThreadTest();
     // runMultithreadingTest();
+    sigSlotInheritanceTest();
 
     // performance tests
     // ifElseAssignment_vs_lambdaReturnIfElseAssignment();
     // memset_vs_manualAssign();
-    lambdaPerformanceTest();
+    // lambdaPerformanceTest();
 
     // lambdaTypeDeduction();
 
