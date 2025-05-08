@@ -63,3 +63,39 @@ public slots:
     void processStdFunctionConstRefArgWrapper(const StdFunctionConstRefArgWrapper&, const CtorDtorNotifier&);
     // void processStdFunctionConstRefArg(std::function<void(CtorDtorNotifier const&)> const&, CtorDtorNotifier const&); // compiler error due to incorrect MOC output    
 };
+
+
+
+void sigSlotInheritanceTest();
+
+class ObjectBase : public QObject
+{
+    Q_OBJECT
+public:
+    ObjectBase(QObject* parent = nullptr);
+    virtual ~ObjectBase() {}
+
+public slots:
+    virtual void bark() { qWarning() << __PRETTY_FUNCTION__; }
+    virtual void barkPure() = 0; // { qWarning() << __PRETTY_FUNCTION__; }
+
+protected slots:
+    virtual void barkProtected() { qWarning() << __PRETTY_FUNCTION__; }
+
+signals:
+    void sig();
+};
+
+class ObjectDerived : public ObjectBase
+{
+    Q_OBJECT
+public:
+    ObjectDerived(QObject* parent = nullptr);
+    virtual ~ObjectDerived() {}
+
+public slots:
+    virtual void bark() override { qWarning() << __PRETTY_FUNCTION__; }
+    virtual void barkPure() override { qWarning() << __PRETTY_FUNCTION__; }
+
+// protected slots: virtual void barkProtected() { qWarning() << __PRETTY_FUNCTION__; }
+};

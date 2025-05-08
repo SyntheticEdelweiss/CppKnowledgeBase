@@ -9,6 +9,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtDebug>
 #include <QtGlobal>
 
 #define under_cast(EnumValue) static_cast<std::underlying_type_t<decltype(EnumValue)>>(EnumValue)

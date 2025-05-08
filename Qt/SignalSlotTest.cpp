@@ -379,3 +379,26 @@ void SlotCaller::stdFunctionTest(CtorDtorNotifier const& t)
     return;
 }
 
+void sigSlotInheritanceTest()
+{
+    // can't instantiate ObjectBase when ObjectBase::barkPure is actually pure virtual
+    //std::unique_ptr<ObjectBase> base_ptr = std::make_unique<ObjectBase>();
+    //emit base_ptr->sig();
+    std::unique_ptr<ObjectDerived> derived_ptr = std::make_unique<ObjectDerived>();
+    emit derived_ptr->sig();
+}
+
+ObjectBase::ObjectBase(QObject* parent)
+    : QObject(parent)
+{
+    connect(this, &ObjectBase::sig, this, &ObjectBase::bark);
+    connect(this, &ObjectBase::sig, this, &ObjectBase::barkPure);
+}
+
+ObjectDerived::ObjectDerived(QObject *parent)
+    : ObjectBase(parent)
+{
+    // can't connect to protected slot like Base::slotFunc, but can like Derived::slotFunc even if Derived has no override
+    // connect(this, &ObjectBase::sig, this, &ObjectBase::barkProtected);
+    connect(this, &ObjectBase::sig, this, &ObjectDerived::barkProtected);
+}
