@@ -38,6 +38,7 @@ HEADERS += \
     Utils.h \
     UsefulStuff.h \
     N-dimensionArray.h \
+    GeneralTests.h \
     PerformanceTests.h \
     Qt/QThreadTest.h \
     Qt/SignalSlotTest.h \
@@ -47,6 +48,7 @@ SOURCES += \
     main.cpp \
     Utils.cpp \
     UsefulStuff.cpp \
+    GeneralTests.cpp \
     PerformanceTests.cpp \
     Qt/QThreadTest.cpp \
     Qt/SignalSlotTest.cpp \
