@@ -1,0 +1,6 @@
+message("<<<<<< Using ${CMAKE_CURRENT_LIST_FILE} >>>>>>")
+add_subdirectory(src/libraryC)
+add_subdirectory(src/libraryB)
+add_subdirectory(src/libraryA)
+add_subdirectory(src/applicationA)
+add_subdirectory(src/applicationB)
