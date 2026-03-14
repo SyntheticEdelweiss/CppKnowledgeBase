@@ -1,11 +1,13 @@
-#include "Qt/SignalSlotTest.h"
-#include "Qt/QThreadTest.h"
-#include "PerformanceTests.h"
-
 #include <QtCore/QCoreApplication>
-#include <QtWidgets/QApplication>
-#include <QtDebug>
 #include <QtCore/QThread>
+#include <QtCore/QtDebug>
+#include <QtWidgets/QApplication>
+
+#include "Qt/QThreadTest.h"
+#include "Qt/SignalSlotTest.h"
+
+#include "PerformanceTests.h"
+#include "Utils.h"
 
 
 int main(int argc, char *argv[])
@@ -19,7 +21,7 @@ int main(int argc, char *argv[])
     // signalSlotArgTest();
     // signalSlotThreadTest();
     // runMultithreadingTest();
-    sigSlotInheritanceTest();
+    // sigSlotInheritanceTest();
 
     // performance tests
     // ifElseAssignment_vs_lambdaReturnIfElseAssignment();

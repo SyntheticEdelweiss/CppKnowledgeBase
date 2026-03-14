@@ -7,10 +7,10 @@
 #include <string>
 
 #include <QtCore/QDateTime>
+#include <QtCore/QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QString>
-#include <QtDebug>
-#include <QtGlobal>
+#include <QtCore/QtGlobal>
 
 #define under_cast(EnumValue) static_cast<std::underlying_type_t<decltype(EnumValue)>>(EnumValue)
 
@@ -39,7 +39,9 @@
 class LogDuration
 {
 public:
-    explicit LogDuration(const std::string& msg, const std::function<bool(std::chrono::milliseconds)> func = [](std::chrono::milliseconds){ return true; })
+    explicit LogDuration(const std::string& msg,
+                         const std::function<bool(std::chrono::milliseconds)> func = [](std::chrono::milliseconds) { return true; }
+    )
         : message(msg)
         , condition(func)
         , start(std::chrono::system_clock::now())
@@ -47,60 +49,67 @@ public:
 
     ~LogDuration()
     {
-        using namespace std::chrono;
-        system_clock::time_point end = system_clock::now();
-        auto elapsedTime = duration_cast<milliseconds>(end - start);
+        using namespace std;
+        using namespace chrono;
+        decltype(start) end = system_clock::now();
+        auto elapsed_ms = duration_cast<milliseconds>(end - start);
 
-        if (condition(elapsedTime))
+        if (condition(elapsed_ms))
         {
-            // Qt variant
-            QString t = QString(": start %1; end %2; ")
-                        .arg( QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(start.time_since_epoch()).count()).toString("yyyy.MM.dd-hh:mm:ss.zzz")
-                            , QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(end.time_since_epoch()).count()).toString("yyyy.MM.dd-hh:mm:ss.zzz"));
-            std::cout << message << t.toStdString() << "Elapsed time " << elapsedTime.count() << " ms" << std::endl;
-
-            // non-Qt variant, inconvenient and uses c-style api
-            /*const auto start_ms = duration_cast<milliseconds>(start.time_since_epoch()).count()
-                                - duration_cast<milliseconds>(duration_cast<seconds>(start.time_since_epoch())).count();
-            const auto end_ms = duration_cast<milliseconds>(end.time_since_epoch()).count()
-                              - duration_cast<milliseconds>(duration_cast<seconds>(end.time_since_epoch())).count();
+#if (__cplusplus >= 202002L)
+            if constexpr (true) {
+                cout << message
+                     << ": start " << format(dt_format, time_point_cast<milliseconds>(start))
+                     << "; end "   << format(dt_format, time_point_cast<milliseconds>(end))
+                     << "; Elapsed time " << elapsed_ms.count() << " ms" << endl;
+            }
+            else {
+                string fmt_string = string("{}: start ") + dt_format + "; end " + dt_format + "; Elapsed time {} ms";
+                cout << vformat(fmt_string, make_format_args(message,
+                                                             time_point_cast<milliseconds>(start),
+                                                             time_point_cast<milliseconds>(end),
+                                                             elapsed_ms.count())) << endl;
+            }
+#elif defined(QDATETIME_H)
+            const auto start_dt = QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(start.time_since_epoch()).count());
+            const auto end_dt = QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(end.time_since_epoch()).count());
+            QString t = QString(": start %1; end %2; ").arg(start_dt.toString(dt_format_qt), end_dt.toString(dt_format_qt));
+            cout << message << t.toStdString() << "Elapsed time " << elapsed_ms.count() << " ms" << endl;
+#else
+            // old c-style api
+            const auto start_ms = duration_cast<milliseconds>(start.time_since_epoch()).count() % 1000;
+            const auto end_ms = duration_cast<milliseconds>(end.time_since_epoch()).count() % 1000;
             time_t start_tt = system_clock::to_time_t(start);
             time_t end_tt = system_clock::to_time_t(end);
-            std::cout << message
-                      << ": start " << std::put_time(std::gmtime(&start_tt), "%Y.%m.%d-%H:%M:%S") << "." << start_ms
-                      << "; end "   << std::put_time(std::gmtime(&end_tt)  , "%Y.%m.%d-%H:%M:%S") << "." << end_ms
-                      << "; Elapsed time " << elapsedTime.count() << " ms"
-                      << std::endl;*/
-
-            // requires c++20 and std::format still has no support for resolution higher than seconds
-            /*const auto start_ms = duration_cast<milliseconds>(start.time_since_epoch()).count()
-                                - duration_cast<milliseconds>(duration_cast<seconds>(start.time_since_epoch())).count();
-            const auto end_ms = duration_cast<milliseconds>(end.time_since_epoch()).count()
-                              - duration_cast<milliseconds>(duration_cast<seconds>(end.time_since_epoch())).count();
-            std::cout << message
-                      << ": start " << std::format("{%Y.%m.%d-%H:%M:%S}", start) << "." << start_ms
-                      << "; end "   << std::format("{%Y.%m.%d-%H:%M:%S}", end)  << "." << end_ms
-                      << "; Elapsed time " << elapsedTime.count() + " ms"
-                      << std::endl;*/
+            std::tm start_tm;
+            std::tm end_tm;
+            #ifdef _WIN32
+                localtime_s(&start_tm, &start_tt);
+                localtime_s(&end_tm,   &end_tt);
+            #else
+                localtime_r(&start_tt, &start_tm);
+                localtime_r(&end_tt,   &end_tm);
+            #endif
+            cout << message
+                 << ": start " << put_time(&start_tm, "%Y.%m.%d-%H:%M:%S") << "." << setfill('0') << setw(3) << start_ms
+                 << "; end "   << put_time(&end_tm, "%Y.%m.%d-%H:%M:%S") << "." << setfill('0') << setw(3) << end_ms
+                 << "; Elapsed time " << elapsed_ms.count() << " ms" << endl;
+#endif
         }
     }
 
     // example: LOG_DURATION_CONDITION("message", LogDuration::elapsedLessThanLimit(std::chrono::milliseconds(500)));
     inline static std::function<bool(std::chrono::milliseconds)> elapsedLessThanLimit(const std::chrono::milliseconds limit)
-    {
-        return [limit](const std::chrono::milliseconds elapsedTime){ return elapsedTime < limit; };
-    }
+    { return [limit](const std::chrono::milliseconds elapsedTime) { return elapsedTime < limit; }; }
     inline static std::function<bool(std::chrono::milliseconds)> elapsedMoreThanLimit(const std::chrono::milliseconds limit)
-    {
-        return [limit](const std::chrono::milliseconds elapsedTime){ return elapsedTime > limit; };
-    }
+    { return [limit](const std::chrono::milliseconds elapsedTime) { return elapsedTime > limit; }; }
 
 private:
     const std::string message;
     const std::function<bool(std::chrono::milliseconds)> condition;
-    std::chrono::system_clock::time_point start;
-//    constexpr static char dt_format[] = "%Y.%m.%d-%H:%M:%S"; // constexpr -> requires c++17
-//    constexpr static QStringView dt_format = u"yyyy.MM.dd-hh:mm:ss.zzz";
+    const std::chrono::system_clock::time_point start;
+    constexpr static char dt_format[] = "{:%Y.%m.%d-%H:%M:%S}"; // std::format uses fractional seconds
+    constexpr static QStringView dt_format_qt = u"yyyy.MM.dd-hh:mm:ss.zzz";
 };
 
 #define LOG_DURATION(message) \
@@ -161,3 +170,4 @@ public:
 signals:
     void testSignal();
 };
+

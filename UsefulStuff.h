@@ -2,10 +2,9 @@
 
 inline bool is_system_little_endian()
 {
-    const int value { 0x01 };
-    const void * address { static_cast<const void *>(&value) };
-    const unsigned char * least_significant_address { static_cast<const unsigned char *>(address) };
-
+    const int value{0x01};
+    const void* address{static_cast<const void*>(&value)};
+    const unsigned char* least_significant_address{static_cast<const unsigned char*>(address)};
     return (*least_significant_address == 0x01);
 }
 void byteOrderTest();
@@ -322,40 +321,40 @@ QList<T> variantListCast(QList<QVariant> const& variantList)
     {
         if (std::is_signed_v<std::underlying_type_t<T>>)
         {
-            for (QVariant const& element : qAsConst(variantList))
+            for (QVariant const& element : std::as_const(variantList))
                 resultList << static_cast<T>(static_cast<std::underlying_type_t<T>>(element.toLongLong()));
         }
         else
         {
-            for (QVariant const& element : qAsConst(variantList))
+            for (QVariant const& element : std::as_const(variantList))
                 resultList << static_cast<T>(static_cast<std::underlying_type_t<T>>(element.toULongLong()));
         }
     }
     else if constexpr(std::is_same_v<QString, T>)
     {
-        for (QVariant const& element : qAsConst(variantList))
+        for (QVariant const& element : std::as_const(variantList))
             resultList << element.toString();
     }
     else if constexpr(std::is_same_v<bool, T>)
     {
-        for (QVariant const& element : qAsConst(variantList))
+        for (QVariant const& element : std::as_const(variantList))
             resultList << element.toBool();
     }
     else if constexpr(std::is_floating_point_v<T>)
     {
-        for (QVariant const& element : qAsConst(variantList))
+        for (QVariant const& element : std::as_const(variantList))
             resultList << static_cast<T>(element.toDouble());
     }
     else if constexpr(std::is_integral_v<T>)
     {
         if constexpr(std::is_signed_v<T>)
         {
-            for (QVariant const& element : qAsConst(variantList))
+            for (QVariant const& element : std::as_const(variantList))
                 resultList << static_cast<T>(element.toLongLong());
         }
         else
         {
-            for (QVariant const& element : qAsConst(variantList))
+            for (QVariant const& element : std::as_const(variantList))
                 resultList << static_cast<T>(element.toULongLong());
         }
     }

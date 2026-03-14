@@ -21,9 +21,9 @@ void sharedDataInRangeBasedLoop()
     auto sharedSource2 = sourceList; // again, nothing is copied here yet
     if (true)
     {
-        std::cout << "---------- test qAsConst" << std::endl;
-        // not copied here because qAsConst adds const modifier to sourceList -> 'begin() const' is called instead of 'begin()' -> it's assured that shared data won't change -> no detach() call
-        for (auto& e : qAsConst(sourceList)) // auto is 'const CtorDtorNotifier'
+        std::cout << "---------- test std::as_const" << std::endl;
+        // not copied here because std::as_const adds const modifier to sourceList -> 'begin() const' is called instead of 'begin()' -> it's assured that shared data won't change -> no detach() call
+        for (auto& e : std::as_const(sourceList)) // auto is 'const CtorDtorNotifier'
             dump.push_back(e.id);
     }
     auto sharedSource3 = sourceList; // again, nothing is copied here yet

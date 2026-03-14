@@ -1,7 +1,7 @@
 TARGET = KnowledgeBase
 TEMPLATE = app
 CONFIG += console warn_on
-CONFIG += c++17
+CONFIG += c++2a
 # CONFIG += build_all
 win32: !contains(CONFIG, build_all): CONFIG -= debug_and_release
 

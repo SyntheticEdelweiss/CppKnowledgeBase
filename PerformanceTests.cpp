@@ -208,11 +208,10 @@ void memset_vs_manualAssign()
 
     std::mt19937_64 gen{static_cast<std::mt19937_64::result_type>(std::chrono::system_clock::now().time_since_epoch().count())};
     std::uniform_int_distribution<> dis{0, 9};
-
-#if DEBUG_BUILD
-    const quint64 N = std::pow(10, 7);
-#elif RELEASE_BUILD
+#ifdef NDEBUG
     const quint64 N = std::pow(10, 9);
+#else
+    const quint64 N = std::pow(10, 7);
 #endif
     std::vector<quint8>* disVec = new std::vector<quint8>;
     disVec->reserve(N);
@@ -277,7 +276,7 @@ void lambdaPerformanceTest()
 
     std::mt19937_64 gen{static_cast<std::mt19937_64::result_type>(std::chrono::system_clock::now().time_since_epoch().count())};
     std::uniform_int_distribution<> dis{0, 5};
-    const int N = std::pow(10, 8);
+    const int N = 100'000'000; // std::pow(10, 8)
     std::array<int, N>* heapArr = new std::array<int, N>();
     std::array<int, N>& values = *heapArr;
     for (int i = 0; i < N; ++i)
