@@ -14,6 +14,8 @@ add_executable(${PROJECT_NAME}
     UsefulStuff.h
     Utils.cpp
     Utils.h
+    ExampleClasses/TreeStruct.cpp
+    ExampleClasses/TreeStruct.hpp
     Qt/QThreadTest.cpp
     Qt/QThreadTest.h
     Qt/SignalSlotTest.cpp
